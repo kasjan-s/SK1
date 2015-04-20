@@ -40,13 +40,12 @@ int main(int argc, char *argv[]) {
         if (err != 0)
             syserr("getaddrinfo: %s\n", gai_strerror(err));
 
-        // Initialize socket
         sock = socket(addr_result->ai_family, addr_result->ai_socktype, addr_result->ai_protocol);
         if (sock < 0)
             syserr("socket tcp");
         
         clock_t start = clock();
-        // Connect socket
+
         if (connect(sock, addr_result->ai_addr, addr_result->ai_addrlen) < 0) {
             syserr("connect");
         }
@@ -98,20 +97,19 @@ int main(int argc, char *argv[]) {
         if (clock_gettime(CLOCK_REALTIME, &tms))
             syserr("clock_gettime");
 
-        uint64_t microseconds = tms.tv_sec * 1000000;
-        microseconds += tms.tv_nsec / 1000;
+        uint64_t microseconds = tms.tv_sec * 1000000; // Seconds -> microseconds
+        microseconds += tms.tv_nsec / 1000; // Adding microseconds (from nanoseconds)
 
-        if (tms.tv_nsec % 1000 >= 500)
+        if (tms.tv_nsec % 1000 >= 500) // Rounding up if necessary
             ++microseconds;
 
         sprintf(buffer, "%"PRId64"", microseconds);
         len = strlen(buffer);
-        printf("%s\n", buffer);
+
+        fprintf(stderr, "Sending %zd bytes: '%s'\n", len, buffer);
 
         snd_len = sendto(sock, buffer, len, sflags,
                 (struct sockaddr *) &my_address, rcva_len);
-
-        printf("sent\n");
 
         clock_t start = clock();
 
@@ -135,7 +133,7 @@ int main(int argc, char *argv[]) {
         float seconds = (float)(end - start) / CLOCKS_PER_SEC;
         printf("Waited %f seconds for an answer.\n", seconds);
 
-        printf("Read from socket: %zd bytes: %s\n", rcv_len, buffer);
+        fprintf(stderr, "Received %zd bytes: '%s'\n", rcv_len, buffer);
 
         if (close(sock) == -1) {
             syserr("close udp");
